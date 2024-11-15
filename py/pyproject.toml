@@ -3,7 +3,7 @@ requires = ["hatchling", "matplotlib>3.8", "cycler"]
 build-backend = "hatchling.build"
 
 [project]
-name = "vis-py"
+name = "vis"
 version = "0.1.0"
 authors = [
     { name = "USYD Rocketry Team", email = "rocketry.team@sydney.edu.au" },
