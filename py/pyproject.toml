@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling", "matplotlib>3.8", "cycler"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
@@ -12,6 +12,7 @@ authors = [
 description = "Unified visualisation library for USYD Rocketry Team"
 readme = "README.md"
 requires-python = ">=3.9"
+dependencies = ["matplotlib>3.8", "cycler"]
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Development Status :: 5 - Production/Stable",
