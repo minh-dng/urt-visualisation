@@ -1,0 +1,117 @@
+site_name: URT Visualisation
+site_url: https://pages.github.com/minh-dng/urt-visualisation
+
+plugins:
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [py]
+          import:
+            - https://matplotlib.org/stable/objects.inv
+          options:
+            # show_source: false
+            # group_by_category: true
+            # show_category_heading: true
+            members_order: source
+            filters: ["!^_", "^__init__$"]
+            merge_init_into_class: true
+            line_length: 88
+            signature_crossrefs: true
+            show_root_toc_entry: false
+            show_root_full_path: false
+            # show_symbol_type_toc: true
+            # show_if_no_docstring: true
+  - search
+  - offline
+
+theme:
+  name: material
+  language: en
+  logo: assets/logo.png
+  favicon: assets/logo.png
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: "deep orange"
+      accent: "light blue"
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: "blue grey"
+      accent: "lime"
+      toggle:
+        icon: material/weather-night
+        name: Switch to system preference
+  font:
+    text: "Roboto"
+    code: "Roboto Mono"
+  features:
+    - navigation.expand
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    # - navigation.indexes
+    - navigation.top
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.tooltips
+    - content.tabs.link
+    - content.code.copy
+
+nav:
+  - Home:
+    - About: index.md
+    - Colour: colour.md
+  - Python:
+    - Overview: python/index.md
+    - API:
+      - Plot: python/plot.md
+      - Colour: python/colour.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.arithmatex:
+      generic: true
+  - abbr
+  - attr_list
+  - pymdownx.tabbed:
+      alternate_style: true
+  - def_list
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - tables
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
