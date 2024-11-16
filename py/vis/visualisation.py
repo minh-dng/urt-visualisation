@@ -8,36 +8,100 @@ Examples:
     ```
 """
 
+import contextlib
 import os
-from typing import IO, Sequence
+from typing import IO
+from typing import Any
+from typing import Generator
+from typing import Sequence
 
 import matplotlib as mpl
 from cycler import cycler
 from matplotlib import pyplot as plt
 from matplotlib.typing import ColorType
 
-from vis import ColourScheme
+from vis.colour import ColourScheme
+
+MPL_RC: dict[str, dict[str, Any]] = {
+    "lines": {
+        "linewidth": 2.5,
+        "markersize": 3,
+    },
+    "font": {
+        "family": "serif",
+        "size": 10,
+    },
+    "axes": {
+        "linewidth": 1,
+        "titlesize": 10,
+        "labelsize": 10,
+        "xmargin": 0,
+        "grid": True,
+        "prop_cycle": cycler(color=ColourScheme.Primary.value),
+    },
+    "grid": {
+        "linewidth": 0.6,
+    },
+    "legend": {
+        "framealpha": 1,
+        "facecolor": "FFFFFF",
+        "edgecolor": "000000",
+        "fancybox": False,
+        "title_fontsize": 10,
+        "fontsize": "small",
+    },
+}
+"""MatplotlibRc, refer to [matplotlib.rc()][matplotlib.rc]"""
 
 
+@contextlib.contextmanager
+def ctx(config: dict[dict[str, Any]] | None = None) -> Generator[None, None, None]:
+    """Context manager + decorator to temporarily set style parameters.
+
+    Args:
+        config: A dictionary where keys are Matplotlib rc parameter groups
+                    and values are dictionaries of parameter settings.
+                    If None, use [MPL_RC][vis.MPL_RC].
+    Yields:
+        (None): This function is a generator that yields control back to the caller.
+
+    Examples:
+        ```python
+        with ctx({'lines': {'linewidth': 2}, 'axes': {'labelsize': 'large'}}):
+            # Your plotting code here
+
+        @ctx({'lines': {'linewidth': 2}, 'axes': {'labelsize': 'large'}})
+        def plot():
+            # Your plotting code here
+        ```
+    """
+
+    for key, value in (config or MPL_RC).items():
+        mpl.rc(key, **value)
+
+    yield
+
+    mpl.rcdefaults()
+
+
+@ctx()
 def uni_plot(
-    y: Sequence[float],
     x: Sequence[float],
+    y: Sequence[float],
     *,
     ax: plt.Axes | None = None,
     label: str | None = None,
     xlabel: str | None = None,
     ylabel: str | None = None,
-    c: ColorType | None = None,
     **kwargs,
 ) -> tuple[plt.Figure, plt.Axes]:
     """Line plot x vs y
 
     Args:
-        y: y-axis data
         x: x-axis data
+        y: y-axis data
         ax: Axes to plot on. New figure on None
-        label: Label for legend
-        c: Colour of the line.
+        label: Legend label
 
     Returns:
         Figure and Axes that was passed in or created
@@ -52,35 +116,32 @@ def uni_plot(
 
     xlabel, ylabel = _no_override_axis_labels(ax, fig, xlabel, ylabel, kwargs)
 
-    ax.plot(x, y, label=label, c=c, **kwargs)
+    ax.plot(x, y, label=label, **kwargs)
     ax.set(xlabel=xlabel, ylabel=ylabel)
 
     return fig, ax
 
 
+@ctx()
 def uni_scatter(
-    y: Sequence[float],
     x: Sequence[float],
+    y: Sequence[float],
     *,
     ax: plt.Axes | None = None,
     label: str | None = None,
     xlabel: str | None = None,
     ylabel: str | None = None,
-    c: ColorType | None = None,
-    s: int | float = 3,
     **kwargs,
 ) -> tuple[plt.Figure, plt.Axes]:
     """Scatter plot x vs y
 
     Args:
-        y: y-axis data
         x: x-axis data
+        y: y-axis data
         ax: Axes to plot on. New figure on None
         label: Label for legend
         xlabel: Label for x-axis
         ylabel: Label for y-axis
-        c: Colour of the line.
-        s: Size of the marker.
 
     Returns:
         Figure and Axes that was passed in or created
@@ -95,22 +156,21 @@ def uni_scatter(
 
     xlabel, ylabel = _no_override_axis_labels(ax, fig, xlabel, ylabel, kwargs)
 
-    ax.scatter(x, y, label=label, c=c, s=s, **kwargs)
+    ax.scatter(x, y, label=label, **kwargs)
     ax.set(xlabel=xlabel, ylabel=ylabel)
 
     return fig, ax
 
 
-@classmethod
+@ctx()
 def dual_y_axis_plot(
-    cls,
     y_s: tuple[Sequence[float], Sequence[float]],
     x: Sequence[float],
     *,
     ax: plt.Axes | None = None,
     xlabel: str | None = None,
     ylabels: tuple[str | None, str | None] = (None, None),
-    colors: tuple[ColorType | None, ColorType] = (None, "r"),
+    colors: tuple[ColorType | None, ColorType | None] = (None, None),
     **kwargs,
 ) -> tuple[plt.Figure, plt.Axes]:
     """Plot 2 ys against 1 x
@@ -132,31 +192,43 @@ def dual_y_axis_plot(
             If `xlab_override_warn`, `ylab_override_warn` are falsy,
             the module will not warn when `xlabel` or `ylabel` is overridden.
     """
-    fig, ax = cls.univariate_plot(
-        y_s[0], x, ax=ax, xlabel=xlabel, ylabel=ylabels[0], c=colors[0], **kwargs
+    fig, ax = uni_plot(
+        x, y_s[0], ax=ax, xlabel=xlabel, ylabel=ylabels[0], c=colors[0], **kwargs
     )
-    ax_right = ax.twinx()
-    cls.univariate_plot(
-        y_s[1], x, ax=ax_right, ylabel=ylabels[1], c=colors[1], **kwargs
-    )
-    ax_right.spines["right"].set_color(colors[1])
-    ax_right.yaxis.label.set_color(colors[1])
-    ax_right.tick_params(axis="y", labelcolor=colors[1])
+
+    # The new axes wipe out all formatting.
+    with ctx():
+        ax_right = ax.twinx()
+
+    # Hack to get the same color cycle (shared object).
+    # If this fail, gotta dig into the source code to find the new mechanism
+    try:
+        ax_right._get_lines = ax._get_lines
+    except AttributeError as e:
+        raise AttributeError(
+            "Color cycle hack failed. Check matplotlib version."
+        ) from e
+
+    uni_plot(x, y_s[1], ax=ax_right, ylabel=ylabels[1], c=colors[1], **kwargs)
+
+    twin_color = ax_right.get_lines()[-1].get_color()
+
+    ax_right.spines["right"].set_color(twin_color)
+    ax_right.yaxis.label.set_color(twin_color)
+    ax_right.tick_params(axis="y", labelcolor=twin_color)
     ax_right.grid(False)
 
     return fig, ax
 
 
-@classmethod
 def dual_x_axis_plot(
-    cls,
     y: Sequence[float],
     x_s: tuple[Sequence[float], Sequence[float]],
     *,
     ax: plt.Axes | None = None,
     xlabels: tuple[str | None, str | None] = (None, None),
     ylabel: str | None = None,
-    colors: tuple[ColorType | None, ColorType] = (None, "r"),
+    colors: tuple[ColorType | None, ColorType | None] = (None, None),
     **kwargs,
 ) -> tuple[plt.Figure, plt.Axes]:
     """Plot 2 xs against 1 y
@@ -178,14 +250,30 @@ def dual_x_axis_plot(
             If `xlab_override_warn`, `ylab_override_warn` are falsy,
             the module will not warn when `xlabel` or `ylabel` is overridden.
     """
-    fig, ax = cls.univariate_plot(
-        y, x_s[0], ax=ax, xlabel=xlabels[0], ylabel=ylabel, c=colors[0], **kwargs
+    fig, ax = uni_plot(
+        x_s[0], y, ax=ax, xlabel=xlabels[0], ylabel=ylabel, c=colors[0], **kwargs
     )
-    ax_top = ax.twiny()
-    cls.univariate_plot(y, x_s[1], ax=ax_top, xlabel=xlabels[1], c=colors[1], **kwargs)
-    ax_top.spines["top"].set_color(colors[1])
-    ax_top.xaxis.label.set_color(colors[1])
-    ax_top.tick_params(axis="x", labelcolor=colors[1])
+
+    # The new axes wipe out all formatting.
+    with ctx():
+        ax_top = ax.twiny()
+
+    # Hack to get the same color cycle (shared object).
+    # If this fail, gotta dig into the source code to find the new mechanism
+    try:
+        ax_top._get_lines = ax._get_lines
+    except AttributeError as e:
+        raise AttributeError(
+            "Color cycle hack failed. Check matplotlib version."
+        ) from e
+
+    uni_plot(x_s[1], y, ax=ax_top, xlabel=xlabels[1], c=colors[1], **kwargs)
+
+    twin_color = ax_top.get_lines()[-1].get_color()
+
+    ax_top.spines["top"].set_color(twin_color)
+    ax_top.xaxis.label.set_color(twin_color)
+    ax_top.tick_params(axis="x", labelcolor=twin_color)
     ax_top.grid(False)
 
     return fig, ax
@@ -241,13 +329,25 @@ def save(fig: plt.Figure, fname: str | os.PathLike | IO, **kwargs):
     fig.savefig(fname, bbox_inches="tight", dpi=dpi, transparent=transparent, **kwargs)
 
 
+@ctx()
 def get_fig_ax(ax: plt.Axes | None) -> tuple[plt.Figure, plt.Axes]:
+    """Get figure and axes. Create new figure if axes is None"""
     if ax is None:
         fig, ax = plt.subplots()
     else:
         fig = ax.figure  # axes must belong to 1 and only 1 figure
 
     return fig, ax
+
+
+@ctx()
+def subplots(*args, **kwargs) -> tuple[plt.Figure, plt.Axes | list[plt.Axes]]:
+    """Wrapper for [plt.subplots()][matplotlib.pyplot.subplots]
+
+    Returns:
+        Figure and (Axes or array of Axes)
+    """
+    return plt.subplots(*args, **kwargs)
 
 
 def _no_override_axis_labels(
@@ -299,27 +399,12 @@ def _no_override_axis_labels(
     return xlabel, ylabel
 
 
-def _init_style():
-    """Initialise URT Visualisation style. This is called on import"""
-    mpl.rcParams["lines.linewidth"] = 2.5
-    mpl.rcParams["lines.markersize"] = 1.5
+def style_init():
+    """Initialise style. Permanent until [style_reset()][vis.style_reset]"""
+    for key, value in MPL_RC.items():
+        mpl.rc(key, **value)
 
-    mpl.rcParams["font.family"] = "serif"
-    mpl.rcParams["text.usetex"] = False
 
-    mpl.rcParams["axes.linewidth"] = 1
-    mpl.rcParams["axes.titlesize"] = 10
-    mpl.rcParams["axes.labelsize"] = 10
-    mpl.rcParams["axes.xmargin"] = 0
-    mpl.rcParams["axes.grid"] = True
-
-    mpl.rcParams["grid.linewidth"] = 0.6
-
-    mpl.rcParams["legend.framealpha"] = 1
-    mpl.rcParams["legend.facecolor"] = "FFFFFF"
-    mpl.rcParams["legend.edgecolor"] = "000000"
-    mpl.rcParams["legend.fancybox"] = False
-    mpl.rcParams["legend.title_fontsize"] = 10
-    mpl.rcParams["legend.fontsize"] = "small"
-
-    mpl.rcParams["axes.prop_cycle"] = cycler(color=ColourScheme.Primary.value)
+def style_reset():
+    """Reset style to default"""
+    mpl.rcdefaults()
