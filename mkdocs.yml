@@ -1,5 +1,22 @@
 site_name: URT Visualisation
 site_url: https://pages.github.com/minh-dng/urt-visualisation
+repo_url: https://github.com/minh-dng/urt-visualisation
+repo_name: minh-dng/urt-visualisation
+edit_uri: edit/main/docs/
+
+nav:
+  - Home:
+      - About: index.md
+      - Colour: colour.md
+  - Python:
+      - Usage: python/usage.ipynb
+      - Install: python/install.md
+      - API:
+          - Plot: python/plot.md
+          - Colour: python/colour.md
+      - Development:
+          - Contribute: python/dev.md
+          - Todo: python/todo.md
 
 plugins:
   - mkdocstrings:
@@ -18,17 +35,23 @@ plugins:
             line_length: 88
             signature_crossrefs: true
             show_root_toc_entry: false
-            show_root_full_path: false
+            # show_root_full_path: false
             # show_symbol_type_toc: true
             # show_if_no_docstring: true
   - search
   - offline
+  # - mkdocs_matplotlib
+  - mkdocs-jupyter:
+      execute: true
 
 theme:
   name: material
   language: en
   logo: assets/logo.png
   favicon: assets/logo.png
+  icon:
+    repo: fontawesome/brands/git-alt
+    edit: material/pencil
   palette:
     # Palette toggle for automatic mode
     - media: "(prefers-color-scheme)"
@@ -71,26 +94,12 @@ theme:
     - content.tooltips
     - content.tabs.link
     - content.code.copy
-
-nav:
-  - Home:
-    - About: index.md
-    - Colour: colour.md
-  - Python:
-    - Overview: python/index.md
-    - API:
-      - Plot: python/plot.md
-      - Colour: python/colour.md
+    - content.action.edit
 
 markdown_extensions:
   - admonition
   - pymdownx.details
-  - pymdownx.superfences:
-      custom_fences:
-        - name: mermaid
-          class: mermaid
-          format: !!python/name:pymdownx.superfences.fence_code_format
-
+  - pymdownx.superfences
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -99,19 +108,4 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.arithmatex:
       generic: true
-  - abbr
-  - attr_list
-  - pymdownx.tabbed:
-      alternate_style: true
-  - def_list
-  - pymdownx.tasklist:
-      custom_checkbox: true
-  - pymdownx.emoji:
-      emoji_index: !!python/name:material.extensions.emoji.twemoji
-      emoji_generator: !!python/name:material.extensions.emoji.to_svg
-  - tables
   - pymdownx.critic
-  - pymdownx.caret
-  - pymdownx.keys
-  - pymdownx.mark
-  - pymdownx.tilde

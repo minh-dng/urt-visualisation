@@ -1,6 +1,7 @@
 # Colour
 
-!!! note "TODO" Include colour palette with transparent background.
+!!! note "TODO"
+    Include colour palette with transparent background.
 
 ::: vis.colour
     options:
